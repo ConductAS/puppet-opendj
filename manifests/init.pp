@@ -34,84 +34,85 @@ class opendj (
   $dsconfig      = "${opendj::home}/bin/dsconfig   ${common_opts} -p ${opendj::admin_port} -X -n"
   $dsreplication = "${opendj::home}/bin/dsreplication --adminUID admin --adminPassword ${admin_password} -X -n"
 # props_file Contains passwords, thus (temporarily) stored in /dev/shm
-  $props_file    = "/dev/shm/opendj.properties"
+  $props_file    = '/dev/shm/opendj.properties'
   $base_dn_file  = "${tmp}/base_dn.ldif"
 
-  package { "opendj":
+  package { 'opendj':
     ensure => present,
   }
 
-  group { "${group}":
-    ensure => "present",
+  group { $group:
+    ensure => 'present',
   }
 
-  user { "${user}":
-    ensure     => "present",
+  user { $user:
+    ensure     => 'present',
     groups     => $group,
-    comment => 'OpenDJ LDAP daemon',
-    home => "${opendj::home}",
-    shell => '/sbin/nologin',
+    comment    => 'OpenDJ LDAP daemon',
+    home       => $opendj::home,
+    # If no login is specified the server cant start
+    # shell      => '/sbin/nologin',
     managehome => true,
-    require    => Group["${group}"],
+    require    => Group[$group],
   }
 
-  file { "${home}":
+  file { $home:
     ensure  => directory,
     owner   => $user,
     group   => $group,
-    require => [User["${user}"], Package["opendj"]],
+    require => [User[$user], Package['opendj']],
   }
 
-  file { "${props_file}":
+  file { $props_file:
     ensure  => file,
     content => template("${module_name}/setup.erb"),
     owner   => $user,
     group   => $group,
-    mode    => 0600,
-    require => [File["${home}"], File["${base_dn_file}"]],
+    mode    => '0600',
+    require => [File[$home], File[$base_dn_file]],
   }
 
-  file { "${base_dn_file}":
+  file { $base_dn_file:
     ensure  => file,
     content => template("${module_name}/base_dn.ldif.erb"),
     owner   => $user,
     group   => $group,
-    mode    => 0600,
-    require => User["${user}"],
+    mode    => '0600',
+    require => User[$user],
   }
 
   file_line { 'file_limits_soft':
     path    => '/etc/security/limits.conf',
-    line    => '${user} soft nofile 65536',
-    require => User["${user}"],
+    line    => "${user} soft nofile 65536",
+    require => User[$user],
   }
 
   file_line { 'file_limits_hard':
     path    => '/etc/security/limits.conf',
-    line    => '${user} hard nofile 131072',
-    require => User["${user}"],
+    line    => "${user} hard nofile 131072",
+    require => User[$user],
   }
 
-  exec { "configure opendj":
-    require => File["${props_file}"],
+  exec { 'configure opendj':
+    require => File[$props_file],
     command => "/bin/su opendj -s /bin/bash -c '${home}/setup -i \
         -n -Q --acceptLicense --doNotStart --propertiesFilePath ${props_file}'",
     creates => "${home}/config",
     notify  => Exec['create RC script'],
   }
 
-  exec { "create RC script":
-    require => Package["opendj"],
+  exec { 'create RC script':
+    require => Package['opendj'],
     command => "${home}/bin/create-rc-script --userName ${user} \
         --outputFile /etc/init.d/opendj",
-    creates => "/etc/init.d/opendj",
+    creates => '/etc/init.d/opendj',
     notify  => Service['opendj'],
   }
 
   service { 'opendj':
-    require    => Exec["create RC script"],
-    enable     => true,
     ensure     => running,
+    require    => Exec['create RC script'],
+    enable     => true,
     hasrestart => true,
     hasstatus  => false,
     status     => "${home}/bin/status -D \"${admin_user}\" \
@@ -134,14 +135,14 @@ class opendj (
 #    refreshonly => true,
 #  }
 
-  exec { "set single structural objectclass behavior":
+  exec { 'set single structural objectclass behavior':
     command => "${dsconfig} --advanced set-global-configuration-prop --set single-structural-objectclass-behavior:accept",
     unless  => "${dsconfig} --advanced get-global-configuration-prop | grep 'single-structural-objectclass-behavior' | grep accept",
     require => Service['opendj'],
   }
 
   if ($master != '' and $host != $master) {
-    exec { "enable replication":
+    exec { 'enable replication':
       require => Service['opendj'],
       command => "/bin/su ${user} -s /bin/bash -c \"$dsreplication enable \
         --host1 ${master} --port1 ${admin_port} \
@@ -153,13 +154,13 @@ class opendj (
         --baseDN '${base_dn}'\"",
       unless  => "/bin/su ${user} -s /bin/bash -c \"$dsreplication \
         status | grep ${host} | cut -d : -f 5 | grep true\"",
-      notify  => Exec["initialize replication"]
+      notify  => Exec['initialize replication']
     }
 
-    exec { "initialize replication":
+    exec { 'initialize replication':
       command     => "/bin/su ${user} -s /bin/bash -c \"$dsreplication initialize \
-        -h ${master} -p ${admin_port} -O ${host} --baseDN '${base_dn}'\"",
-      require     => Exec["enable replication"],
+        -h ${master} -p ${admin_port} -O ${host} --baseDN ${base_dn}\"",
+      require     => Exec['enable replication'],
       refreshonly => true,
     }
   }
@@ -168,7 +169,7 @@ class opendj (
     validate_hash($java_properties)
     create_resources('opendj::java_property', $java_properties)
 
-    exec { "apply java properties":
+    exec { 'apply java properties':
       command => "/bin/su ${user} -s /bin/bash -c \"${home}/bin/dsjavaproperties\"",
       notify  => Service['opendj'],
     }

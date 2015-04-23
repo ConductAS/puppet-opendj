@@ -19,7 +19,7 @@ define opendj::java_property($value) {
     path    => "${opendj::home}/config/java.properties",
     line    => "${title}=${value}",
     match   => "^(${title}=).*$",
-    require => Exec["configure opendj"],
-    notify  => Exec["apply java properties"],
+    require => Exec['configure opendj'],
+    notify  => Exec['apply java properties'],
   }
 }
