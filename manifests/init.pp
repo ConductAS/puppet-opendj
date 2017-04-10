@@ -13,7 +13,7 @@
 
 class opendj (
   $ldap_port       = hiera('ldap_port'),
-  $ldaps_port      = hiera('opendj::ldaps_port'),
+  $ldaps_port      = undef,
   $admin_port      = hiera('opendj::admin_port'),
   $repl_port       = hiera('opendj::repl_port'),
   $jmx_port        = hiera('opendj::jmx_port'),
