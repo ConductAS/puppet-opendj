@@ -16,7 +16,7 @@
 #
 define opendj::java_property($value) {
   file_line { "java_property:${title}":
-    path    => "${opendj::home}/config/java.properties",
+    path    => "${opendj::opendj_home}/config/java.properties",
     line    => "${title}=${value}",
     match   => "^(${title}=).*$",
     require => Exec['configure opendj'],

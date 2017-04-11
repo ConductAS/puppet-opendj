@@ -12,37 +12,36 @@
 #
 
 class opendj (
-  $ldap_port       = undef,
-  $ldaps_port      = undef,
-  $admin_port      = undef,
-  $repl_port       = undef,
-  $jmx_port        = undef,
-  $admin_user      = undef,
-  $admin_password  = undef,
-  $base_dn         = undef,
-  $base_dir        = undef,
-  $home            = undef,
-  $user            = undef,
-  $group           = undef,
-  $host            = undef,
-  $tmp             = undef,
-  $master          = undef,
-  $java_properties = undef,
-  $opendj_url      = undef,
+  $ldap_port              = hiera('LDAP_PORT'),
+  $ldaps_port             = hiera('ldaps_port'),
+  $opendj_admin_port      = hiera('opendj_admin_port'),
+  $opendj_repl_port       = hiera('opendj_repl_port'),
+  $opendj_jmx_port        = hiera('opendj_jmx_port'),
+  $opendj_admin_user      = hiera('opendj_admin_user'),
+  $opendj_admin_password  = hiera('opendj_admin_password'),
+  $opendj_base_dn         = hiera('opendj_base_dn'),
+  $opendj_base_dir        = hiera('opendj_base_dir'),
+  $opendj_home            = hiera('opendj_home'),
+  $opendj_user            = hiera('opendj_user'),
+  $opendj_group           = hiera('opendj_group'),
+  $opendj_host            = hiera('opendj_host'),
+  $opendj_tmp             = hiera('opendj_tmpdir'),
+  $opendj_master          = hiera('opendj_master'),
+  $opendj_url             = hiera('opendj_url'),
 
 ) {
-  $common_opts   = "-h localhost -D '${opendj::admin_user}' -w ${opendj::admin_password}"
-  $ldapsearch    = "${opendj::home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
-  $ldapmodify    = "${opendj::home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
-  $dsconfig      = "${opendj::home}/bin/dsconfig   ${common_opts} -p ${opendj::admin_port} -X -n"
-  $dsreplication = "${opendj::home}/bin/dsreplication --adminUID admin --adminPassword ${admin_password} -X -n"
+  $common_opts   = "-h localhost -D '${opendj::opendj_admin_user}' -w ${opendj::opendj_admin_password}"
+  $ldapsearch    = "${opendj::opendj_home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
+  $ldapmodify    = "${opendj::opendj_home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
+  $dsconfig      = "${opendj::opendj_home}/bin/dsconfig   ${common_opts} -p ${opendj::opendj_admin_port} -X -n"
+  $dsreplication = "${opendj::opendj_home}/bin/dsreplication --adminUID admin --adminPassword ${opendj_admin_password} -X -n"
 # props_file Contains passwords, thus (temporarily) stored in /dev/shm
   $props_file    = '/dev/shm/opendj.properties'
-  $base_dn_file  = "${tmp}/base_dn.ldif"
+  $base_dn_file  = "${opendj_tmp}/base_dn.ldif"
 
   exec{'retrieve_opendj_zip':
     command => "${opendj_url}",
-    creates => "${base_dir}/opendj.zip",
+    creates => "${opendj_base_dir}/opendj.zip",
     notify => Exec['unzip_opendj'],
   }
 
@@ -52,10 +51,10 @@ class opendj (
   }
 
   exec { 'unzip_opendj':
-    command     => "/usr/bin/unzip ${base_dir}/opendj.zip -d ${base_dir}/",
+    command     => "/usr/bin/unzip ${opendj_base_dir}/opendj.zip -d ${opendj_base_dir}/",
     cwd         => '/home/vagrant/',
     user        => 'root',
-    require     => File["${base_dir}/opendj.zip"],
+    require     => File["${opendj_base_dir}/opendj.zip"],
     refreshonly => true,
   }
 
@@ -65,19 +64,17 @@ class opendj (
     }
   }
 
-  group { $group:
+  group { $opendj_group:
     ensure => 'present',
   }
 
-  user { $user:
+  user { $opendj_user:
     ensure     => 'present',
-    groups     => $group,
+    groups     => $opendj_group,
     comment    => 'OpenDJ LDAP daemon',
-    home       => $opendj::home,
-    # If no login is specified the server cant start
-    # shell      => '/sbin/nologin',
+    home       => $opendj::opendj_home,
     managehome => true,
-    require    => Group[$group],
+    require    => Group[$opendj_group],
   }
 
   file { $props_file:
@@ -86,113 +83,89 @@ class opendj (
     owner   => $user,
     group   => $group,
     mode    => '0600',
-    require => [File[$home], File[$base_dn_file]],
-  }
-
-  file { $base_dn_file:
-    ensure  => file,
-    content => template("${module_name}/base_dn.ldif.erb"),
-    owner   => $user,
-    group   => $group,
-    mode    => '0600',
-    require => User[$user],
+    require => [File[$opendj_home]],
   }
 
   file { '/opt/opendj/esec-ldap.ldif':
     ensure  => file,
-    content => template("${module_name}/base_dn.ldif.erb"),
-    owner   => $user,
-    group   => $group,
+    content => template("${module_name}/esec-ldap.ldif.erb"),
+    owner   => $opendj_user,
+    group   => $opendj_group,
     mode    => '0600',
-    require => User[$user],
+    require => User[$opendj_user],
   }
 
   file_line { 'file_limits_soft':
     path    => '/etc/security/limits.conf',
-    line    => "${user} soft nofile 65536",
-    require => User[$user],
+    line    => "${opendj_user} soft nofile 65536",
+    require => User[$opendj_user],
   }
 
   file_line { 'file_limits_hard':
     path    => '/etc/security/limits.conf',
-    line    => "${user} hard nofile 131072",
-    require => User[$user],
+    line    => "${opendj_user} hard nofile 131072",
+    require => User[$opendj_user],
   }
 
   exec { 'configure opendj2':
     require => File[$props_file],
-    command => "${home}/setup --cli -v \
+    command => "${opendj_home}/setup --cli -v \
     --ldapPort '${ldap_port}' \
-    --adminConnectorPort '${admin_port}' \
-    --rootUserDN '${admin_user}' \
-    --rootUserPassword '${admin_password}' \
+    --adminConnectorPort '${opendj_admin_port}' \
+    --rootUserDN '${opendj_admin_user}' \
+    --rootUserPassword '${opendj_admin_password}' \
     --no-prompt --noPropertiesFile \
     --doNotStart \
     --generateSelfSignedCertificate \
     --hostname esec-ldap \
     --acceptLicense \
     --enableStartTLS",
-    creates => "${home}/config",
-    user => "opendj",
+    creates => "${opendj_home}/config",
+    user => "${opendj_user}",
   }
 
-  file { $home:
+  file { $opendj_home:
     ensure  => directory,
-    owner   => $user,
-    group   => $group,
+    owner   => $opendj_user,
+    group   => $opendj_group,
     recurse => true,
-    require => [User[$user], Exec["unzip_opendj"]],
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
   }
 
-  file { "${home}/locks":
+  file { "${opendj_home}/locks":
     ensure  => directory,
-    owner   => $user,
-    group   => $group,
+    owner   => $opendj_user,
+    group   => $opendj_group,
     recurse => true,
-    require => [User[$user], Exec["unzip_opendj"]],
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
   }
 
-  file { "${home}/logs":
+  file { "${opendj_home}/logs":
     ensure  => directory,
-    owner   => $user,
-    group   => $group,
+    owner   => $opendj_user,
+    group   => $opendj_group,
     recurse => true,
-    require => [User[$user], Exec["unzip_opendj"]],
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
   }
 
   exec { 'create RC script':
     require => Exec["unzip_opendj"],
-    command => "${home}/bin/create-rc-script --userName ${user} \
+    command => "${opendj_home}/bin/create-rc-script --userName ${opendj_user} \
         --outputFile /etc/init.d/opendj",
     creates => '/etc/init.d/opendj',
-    #notify  => Service['opendj'],
+    notify  => Service['opendj'],
   }
 
   exec { 'create SD script':
     require => Exec["unzip_opendj"],
     command => "/usr/bin/systemctl -l enable opendj",
-    #notify  => Service['opendj'],
+    notify  => Service['opendj'],
   }
 
   exec { 'set single structural objectclass behavior':
     command => "${dsconfig} --advanced set-global-configuration-prop --set single-structural-objectclass-behavior:accept",
     unless  => "${dsconfig} --advanced get-global-configuration-prop | grep 'single-structural-objectclass-behavior' | grep accept",
     require => Service['opendj'],
-  }
-
-  if !empty($java_properties) {
-    validate_hash($java_properties)
-    create_resources('opendj::java_property', $java_properties)
-
-  exec { 'apply java properties':
-    command => "/bin/su ${user} -s /bin/bash -c \"${home}/bin/dsjavaproperties\"",
-    notify  => Service['opendj'],
-    }
-  }
-
-  exec { 'wait_for_file_lock' :
-    command => "sleep 10",
-    path => "/usr/bin:/bin",
   }
 
   service { 'opendj':
