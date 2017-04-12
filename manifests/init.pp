@@ -52,7 +52,6 @@ class opendj (
 
   exec { 'unzip_opendj':
     command     => "/usr/bin/unzip ${opendj_base_dir}/opendj.zip -d ${opendj_base_dir}/",
-    cwd         => '/home/vagrant/',
     user        => 'root',
     require     => File["${opendj_base_dir}/opendj.zip"],
     refreshonly => true,
