@@ -1,0 +1,51 @@
+version: 1
+
+dn: c=GB
+objectClass: top
+objectClass: country
+c: GB
+
+dn: o=<%= @auth_org01 %>1234.5.6,c=GB
+objectClass: organization
+objectClass: top
+o: <%= @auth_org01 %>
+
+dn: o=<%= @auth_org02 %>,o=<%= @auth_org01 %>,c=GB
+objectClass: organization
+objectClass: top
+o: <%= @auth_org02 %>
+
+dn: <%= @LDAP_ROLES_DN %>
+objectClass: organizationalUnit
+objectClass: top
+ou: Groups
+
+dn: cn=<%= @GROUP_CLIENTS %>,<%= @LDAP_ROLES_DN %>
+objectClass: top
+objectClass: groupOfNames
+cn: <%= @GROUP_CLIENTS %>
+
+dn: cn=<%= @GROUP_LAADMINS %>,<%= @LDAP_ROLES_DN %>
+objectClass: top
+objectClass: groupOfNames
+cn: <%= @GROUP_LAADMINS %>
+
+dn: cn=<%= @GROUP_LAUSERS %>,<%= @LDAP_ROLES_DN %>
+objectClass: top
+objectClass: groupOfNames
+cn: <%= @GROUP_LAUSERS %>
+
+dn: cn=<%= @GROUP_LRADMINS %>,<%= @LDAP_ROLES_DN %>
+objectClass: top
+objectClass: groupOfNames
+cn: <%= @GROUP_LRADMINS %>
+
+dn: cn=<%= @GROUP_LRUSERS %>,<%= @LDAP_ROLES_DN %>
+objectClass: top
+objectClass: groupOfNames
+cn: <%= @GROUP_LRUSERS %>
+
+dn: <%= @LDAP_PEOPLE_DN %>
+objectClass: organizationalUnit
+objectClass: top
+ou: users

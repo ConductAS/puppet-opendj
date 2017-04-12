@@ -12,55 +12,69 @@
 #
 
 class opendj (
-  $ldap_port       = hiera('opendj::ldap_port', '1389'),
-  $ldaps_port      = hiera('opendj::ldaps_port', '1636'),
-  $admin_port      = hiera('opendj::admin_port', '4444'),
-  $repl_port       = hiera('opendj::repl_port', '8989'),
-  $jmx_port        = hiera('opendj::jmx_port', '1689'),
-  $admin_user      = hiera('opendj::admin_user', 'cn=Directory Manager'),
-  $admin_password  = hiera('opendj::admin_password'),
-  $base_dn         = hiera('opendj::base_dn', 'dc=example,dc=com'),
-  $home            = hiera('opendj::home', '/opt/opendj'),
-  $user            = hiera('opendj::user', 'opendj'),
-  $group           = hiera('opendj::group', 'opendj'),
-  $host            = hiera('opendj::host', $fqdn),
-  $tmp             = hiera('opendj::tmpdir', '/tmp'),
-  $master          = hiera('opendj::master', undef),
-  $java_properties = hiera('opendj::java_properties', undef),
+  $ldap_port              = hiera('LDAP_PORT'),
+  $ldaps_port             = hiera('ldaps_port'),
+  $opendj_admin_port      = hiera('opendj_admin_port'),
+  $opendj_repl_port       = hiera('opendj_repl_port'),
+  $opendj_jmx_port        = hiera('opendj_jmx_port'),
+  $opendj_admin_user      = hiera('opendj_admin_user'),
+  $opendj_admin_password  = hiera('opendj_admin_password'),
+  $opendj_base_dn         = hiera('opendj_base_dn'),
+  $opendj_base_dir        = hiera('opendj_base_dir'),
+  $opendj_home            = hiera('opendj_home'),
+  $opendj_user            = hiera('opendj_user'),
+  $opendj_group           = hiera('opendj_group'),
+  $opendj_host            = hiera('opendj_host'),
+  $opendj_tmp             = hiera('opendj_tmpdir'),
+  $opendj_master          = hiera('opendj_master'),
+  $opendj_url             = hiera('opendj_url'),
+
 ) {
-  $common_opts   = "-h localhost -D '${opendj::admin_user}' -w ${opendj::admin_password}"
-  $ldapsearch    = "${opendj::home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
-  $ldapmodify    = "${opendj::home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
-  $dsconfig      = "${opendj::home}/bin/dsconfig   ${common_opts} -p ${opendj::admin_port} -X -n"
-  $dsreplication = "${opendj::home}/bin/dsreplication --adminUID admin --adminPassword ${admin_password} -X -n"
+  $common_opts   = "-h localhost -D '${opendj::opendj_admin_user}' -w ${opendj::opendj_admin_password}"
+  $ldapsearch    = "${opendj::opendj_home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
+  $ldapmodify    = "${opendj::opendj_home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
+  $dsconfig      = "${opendj::opendj_home}/bin/dsconfig   ${common_opts} -p ${opendj::opendj_admin_port} -X -n"
+  $dsreplication = "${opendj::opendj_home}/bin/dsreplication --adminUID admin --adminPassword ${opendj_admin_password} -X -n"
 # props_file Contains passwords, thus (temporarily) stored in /dev/shm
   $props_file    = '/dev/shm/opendj.properties'
-  $base_dn_file  = "${tmp}/base_dn.ldif"
+  $base_dn_file  = "${opendj_tmp}/base_dn.ldif"
 
-  package { 'opendj':
-    ensure => present,
+  exec{'retrieve_opendj_zip':
+    command => "${opendj_url}",
+    creates => "${opendj_base_dir}/opendj.zip",
+    notify => Exec['unzip_opendj'],
   }
 
-  group { $group:
+  file{'/opt/opendj.zip':
+    mode => 0755,
+    require => Exec["retrieve_opendj_zip"],
+  }
+
+  exec { 'unzip_opendj':
+    command     => "/usr/bin/unzip ${opendj_base_dir}/opendj.zip -d ${opendj_base_dir}/",
+    cwd         => '/home/vagrant/',
+    user        => 'root',
+    require     => File["${opendj_base_dir}/opendj.zip"],
+    refreshonly => true,
+  }
+
+  if ! defined(Package['java-1.8.0-openjdk']) {
+    package { 'java-1.8.0-openjdk':
+        ensure => installed,
+    }
+  }
+
+  group { $opendj_group:
     ensure => 'present',
   }
 
-  user { $user:
+  user { $opendj_user:
     ensure     => 'present',
-    groups     => $group,
+    groups     => $opendj_group,
     comment    => 'OpenDJ LDAP daemon',
-    home       => $opendj::home,
-    # If no login is specified the server cant start
-    # shell      => '/sbin/nologin',
+    home       => $opendj::opendj_home,
     managehome => true,
-    require    => Group[$group],
-  }
-
-  file { $home:
-    ensure  => directory,
-    owner   => $user,
-    group   => $group,
-    require => [User[$user], Package['opendj']],
+    require    => Group[$opendj_group],
   }
 
   file { $props_file:
@@ -69,71 +83,84 @@ class opendj (
     owner   => $user,
     group   => $group,
     mode    => '0600',
-    require => [File[$home], File[$base_dn_file]],
+    require => [File[$opendj_home]],
   }
 
-  file { $base_dn_file:
+  file { '/opt/opendj/esec-ldap.ldif':
     ensure  => file,
-    content => template("${module_name}/base_dn.ldif.erb"),
-    owner   => $user,
-    group   => $group,
+    content => template("${module_name}/esec-ldap.ldif.erb"),
+    owner   => $opendj_user,
+    group   => $opendj_group,
     mode    => '0600',
-    require => User[$user],
+    require => User[$opendj_user],
   }
 
   file_line { 'file_limits_soft':
     path    => '/etc/security/limits.conf',
-    line    => "${user} soft nofile 65536",
-    require => User[$user],
+    line    => "${opendj_user} soft nofile 65536",
+    require => User[$opendj_user],
   }
 
   file_line { 'file_limits_hard':
     path    => '/etc/security/limits.conf',
-    line    => "${user} hard nofile 131072",
-    require => User[$user],
+    line    => "${opendj_user} hard nofile 131072",
+    require => User[$opendj_user],
   }
 
-  exec { 'configure opendj':
+  exec { 'configure opendj2':
     require => File[$props_file],
-    command => "/bin/su opendj -s /bin/bash -c '${home}/setup -i \
-        -n -Q --acceptLicense --doNotStart --propertiesFilePath ${props_file}'",
-    creates => "${home}/config",
-    notify  => Exec['create RC script'],
+    command => "${opendj_home}/setup --cli -v \
+    --ldapPort '${ldap_port}' \
+    --adminConnectorPort '${opendj_admin_port}' \
+    --rootUserDN '${opendj_admin_user}' \
+    --rootUserPassword '${opendj_admin_password}' \
+    --no-prompt --noPropertiesFile \
+    --doNotStart \
+    --generateSelfSignedCertificate \
+    --hostname esec-ldap \
+    --acceptLicense \
+    --enableStartTLS",
+    creates => "${opendj_home}/config",
+    user => "${opendj_user}",
+  }
+
+  file { $opendj_home:
+    ensure  => directory,
+    owner   => $opendj_user,
+    group   => $opendj_group,
+    recurse => true,
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
+  }
+
+  file { "${opendj_home}/locks":
+    ensure  => directory,
+    owner   => $opendj_user,
+    group   => $opendj_group,
+    recurse => true,
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
+  }
+
+  file { "${opendj_home}/logs":
+    ensure  => directory,
+    owner   => $opendj_user,
+    group   => $opendj_group,
+    recurse => true,
+    require => [User[$opendj_user], Exec["unzip_opendj"]],
   }
 
   exec { 'create RC script':
-    require => Package['opendj'],
-    command => "${home}/bin/create-rc-script --userName ${user} \
+    require => Exec["unzip_opendj"],
+    command => "${opendj_home}/bin/create-rc-script --userName ${opendj_user} \
         --outputFile /etc/init.d/opendj",
     creates => '/etc/init.d/opendj',
     notify  => Service['opendj'],
   }
 
-  service { 'opendj':
-    ensure     => running,
-    require    => Exec['create RC script'],
-    enable     => true,
-    hasrestart => true,
-    hasstatus  => false,
-    status     => "${home}/bin/status -D \"${admin_user}\" \
-        --bindPassword ${admin_password} | grep --quiet Started",
+  exec { 'create SD script':
+    require => Exec["unzip_opendj"],
+    command => "/usr/bin/systemctl -l enable opendj",
+    notify  => Service['opendj'],
   }
-
-## Bug in OpenAM 11. Heartbeats happens as anonymous binds. Comment this back in when Forgerock applies the bugfix.
-## https://bugster.forgerock.org/jira/browse/OPENAM-3498
-#  exec { "reject unauthenticated requests":
-#    require => Service['opendj'],
-#    command => "/bin/su ${user} -s /bin/bash -c \" \
-#      $dsconfig set-global-configuration-prop --set reject-unauthenticated-requests:true\"",
-#    unless => "/bin/su ${user} -s /bin/bash -c \" \
-#      $dsconfig get-global-configuration-prop | grep 'reject-unauthenticated-requests' | grep true\"",
-#  }
-
-#  exec { "create base dn":
-#    require => File["${base_dn_file}"],
-#    command => "/bin/su ${user} -s /bin/bash -c \"${ldapmodify} -a -f '${base_dn_file}'\"",
-#    refreshonly => true,
-#  }
 
   exec { 'set single structural objectclass behavior':
     command => "${dsconfig} --advanced set-global-configuration-prop --set single-structural-objectclass-behavior:accept",
@@ -141,37 +168,11 @@ class opendj (
     require => Service['opendj'],
   }
 
-  if ($master != '' and $host != $master) {
-    exec { 'enable replication':
-      require => Service['opendj'],
-      command => "/bin/su ${user} -s /bin/bash -c \"$dsreplication enable \
-        --host1 ${master} --port1 ${admin_port} \
-        --replicationPort1 ${repl_port} \
-        --bindDN1 '${admin_user}' --bindPassword1 ${admin_password} \
-        --host2 ${host} --port2 ${admin_port} \
-        --replicationPort2 ${repl_port} \
-        --bindDN2 '${admin_user}' --bindPassword2 ${admin_password} \
-        --baseDN '${base_dn}'\"",
-      unless  => "/bin/su ${user} -s /bin/bash -c \"$dsreplication \
-        status | grep ${host} | cut -d : -f 5 | grep true\"",
-      notify  => Exec['initialize replication']
-    }
-
-    exec { 'initialize replication':
-      command     => "/bin/su ${user} -s /bin/bash -c \"$dsreplication initialize \
-        -h ${master} -p ${admin_port} -O ${host} --baseDN ${base_dn}\"",
-      require     => Exec['enable replication'],
-      refreshonly => true,
-    }
+  service { 'opendj':
+    ensure     => running,
+    require    => Exec['create RC script'],
+    enable     => true,
+    hasstatus  => false,
   }
 
-  if !empty($java_properties) {
-    validate_hash($java_properties)
-    create_resources('opendj::java_property', $java_properties)
-
-    exec { 'apply java properties':
-      command => "/bin/su ${user} -s /bin/bash -c \"${home}/bin/dsjavaproperties\"",
-      notify  => Service['opendj'],
-    }
-  }
 }
