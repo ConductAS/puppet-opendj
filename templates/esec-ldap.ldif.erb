@@ -5,47 +5,47 @@ objectClass: top
 objectClass: country
 c: GB
 
-dn: o=<%= @opendj::auth_org01 %>1234.5.6,c=GB
+dn: o=<%= @auth_org01 %>1234.5.6,c=GB
 objectClass: organization
 objectClass: top
-o: <%= @opendj::auth_org01 %>
+o: <%= @auth_org01 %>
 
-dn: o=<%= @opendj::auth_org02 %>,o=<%= @opendj::auth_org01 %>,c=GB
+dn: o=<%= @auth_org02 %>,o=<%= @auth_org01 %>,c=GB
 objectClass: organization
 objectClass: top
-o: <%= @opendj::auth_org02 %>
+o: <%= @auth_org02 %>
 
-dn: <%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: <%= @LDAP_ROLES_DN %>
 objectClass: organizationalUnit
 objectClass: top
 ou: Groups
 
-dn: cn=<%= @account-api::vars::GROUP_CLIENTS %>,<%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: cn=<%= @GROUP_CLIENTS %>,<%= @LDAP_ROLES_DN %>
 objectClass: top
 objectClass: groupOfNames
-cn: <%= @account-api::vars::GROUP_CLIENTS %>
+cn: <%= @GROUP_CLIENTS %>
 
-dn: cn=<%= @account-api::vars::GROUP_LAADMINS %>,<%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: cn=<%= @GROUP_LAADMINS %>,<%= @LDAP_ROLES_DN %>
 objectClass: top
 objectClass: groupOfNames
-cn: <%= @account-api::vars::GROUP_LAADMINS %>
+cn: <%= @GROUP_LAADMINS %>
 
-dn: cn=<%= @account-api::vars::GROUP_LAUSERS %>,<%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: cn=<%= @GROUP_LAUSERS %>,<%= @LDAP_ROLES_DN %>
 objectClass: top
 objectClass: groupOfNames
-cn: <%= @account-api::vars::GROUP_LAUSERS %>
+cn: <%= @GROUP_LAUSERS %>
 
-dn: cn=<%= @account-api::vars::GROUP_LRADMINS %>,<%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: cn=<%= @GROUP_LRADMINS %>,<%= @LDAP_ROLES_DN %>
 objectClass: top
 objectClass: groupOfNames
-cn: <%= @account-api::vars::GROUP_LRADMINS %>
+cn: <%= @GROUP_LRADMINS %>
 
-dn: cn=<%= @account-api::vars::GROUP_LRUSERS %>,<%= @authorisation-api::vars::LDAP_ROLES_DN %>
+dn: cn=<%= @GROUP_LRUSERS %>,<%= @LDAP_ROLES_DN %>
 objectClass: top
 objectClass: groupOfNames
-cn: <%= @account-api::vars::GROUP_LRUSERS %>
+cn: <%= @GROUP_LRUSERS %>
 
-dn: <%= @authorisation-api::vars::LDAP_PEOPLE_DN %>
+dn: <%= @LDAP_PEOPLE_DN %>
 objectClass: organizationalUnit
 objectClass: top
 ou: users
