@@ -60,20 +60,17 @@ class opendj (
   exec{'retrieve_opendj_zip':
     command => "${opendj_url}",
     creates => "${opendj_base_dir}/opendj.zip",
+    notify => exec["unzip_opendj"],
   }
-  ->
-  file{'/opt/opendj.zip':
-    mode => 0755,
-    require => Exec["retrieve_opendj_zip"],
-  }
-  ->
+
   exec { 'unzip_opendj':
+    require     => Exec["retrieve_opendj_zip"],
     command     => "/usr/bin/unzip ${opendj_base_dir}/opendj.zip -d ${opendj_base_dir}/",
     user        => 'root',
     creates     => "${opendj_home}/setup",
     refreshonly => true,
   }
-  ->
+  
   group { $opendj_group:
     ensure => 'present',
   }
