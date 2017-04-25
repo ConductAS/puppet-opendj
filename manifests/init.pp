@@ -38,7 +38,7 @@ class opendj (
   $ldap_group_lradmins    = hiera('ldap_group_lradmins'),
   $ldap_group_lrusers     = hiera('ldap_group_lrusers'),
   $ldap_people_dn         = hiera('ldap_people_dn'),
-
+  $opendj_ldap_content    = hiera('opendj_ldap_content')
 ) {
   $common_opts   = "-h localhost -D '${opendj::opendj_admin_user}' -w ${opendj::opendj_admin_password}"
   $ldapsearch    = "${opendj::opendj_home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
@@ -98,9 +98,9 @@ class opendj (
     mode    => '0600',
   }
   ->
-  file { "${opendj_home}/esec-ldap.ldif":
+  file { "${opendj_home}/opendj-ldap.ldif":
     ensure  => file,
-    content => template("${module_name}/esec-ldap.ldif.erb"),
+    content => $opendj_ldap_content,
     owner   => $opendj_user,
     group   => $opendj_group,
     mode    => '0600',
@@ -156,7 +156,7 @@ class opendj (
     command => "/opt/opendj/bin/import-ldif --includeBranch '${ldap_base_dn}' \
     --backendID userRoot  --start 0 --port '${opendj_admin_port}' --trustAll \
     --bindPassword '${opendj_admin_password}' --hostname localhost \
-    --ldifFile /opt/opendj/esec-ldap.ldif",
+    --ldifFile /opt/opendj/opendj-ldap.ldif",
     creates => "${opendj_home}/config_done",
   }
   ->
