@@ -44,12 +44,12 @@ class opendj (
   $ldapsearch    = "${opendj::opendj_home}/bin/ldapsearch ${common_opts} -p ${opendj::ldap_port}"
   $ldapmodify    = "${opendj::opendj_home}/bin/ldapmodify ${common_opts} -p ${opendj::ldap_port}"
   $dsconfig      = "${opendj::opendj_home}/bin/dsconfig \
-    --noPropertiesFile --no-prompt --port '${llc_opendj_admin_port}' --trustAll  --bindDN '${llc_opendj_admin_user}' \
-    --bindPassword '${llc_opendj_admin_password}'"
-  $dsreplication = "${opendj::opendj_home}/bin/dsreplication --adminUID admin --adminPassword ${llc_opendj_admin_password} -X -n"
+    --noPropertiesFile --no-prompt --port '${opendj_admin_port}' --trustAll  --bindDN '${opendj_admin_user}' \
+    --bindPassword '${opendj_admin_password}'"
+  $dsreplication = "${opendj::opendj_home}/bin/dsreplication --adminUID admin --adminPassword ${opendj_admin_password} -X -n"
 # props_file Contains passwords, thus (temporarily) stored in /dev/shm
   $props_file    = '/dev/shm/opendj.properties'
-  $opendj_dirs = [ "${llc_opendj_home}","${llc_opendj_home}/locks","${llc_opendj_home}/logs"]
+  $opendj_dirs = [ "${opendj_home}","${opendj_home}/locks","${opendj_home}/logs"]
 
   if ! defined(Package['java-1.8.0-openjdk']) {
     package { 'java-1.8.0-openjdk':
@@ -58,16 +58,16 @@ class opendj (
   }
 
   exec{'retrieve_opendj_zip':
-    command => "${llc_opendj_url}",
-    creates => "${llc_opendj_base_dir}/opendj.zip",
+    command => "${opendj_url}",
+    creates => "${opendj_base_dir}/opendj.zip",
     notify => exec["unzip_opendj"],
   }
 
   exec { 'unzip_opendj':
     require     => Exec["retrieve_opendj_zip"],
-    command     => "/usr/bin/unzip ${llc_opendj_base_dir}/opendj.zip -d ${llc_opendj_base_dir}/",
+    command     => "/usr/bin/unzip ${opendj_base_dir}/opendj.zip -d ${opendj_base_dir}/",
     user        => 'root',
-    creates     => "${llc_opendj_home}/setup",
+    creates     => "${opendj_home}/setup",
     refreshonly => true,
   }
   
@@ -98,7 +98,7 @@ class opendj (
     mode    => '0600',
   }
   ->
-  file { "${llc_opendj_home}/opendj-ldap.ldif":
+  file { "${opendj_home}/opendj-ldap.ldif":
     ensure  => file,
     content => $opendj_ldap_content,
     owner   => $opendj_user,
@@ -108,40 +108,40 @@ class opendj (
   ->
   file_line { 'file_limits_soft':
     path    => '/etc/security/limits.conf',
-    line    => "${llc_opendj_user} soft nofile 65536",
+    line    => "${opendj_user} soft nofile 65536",
   }
   ->
   file_line { 'file_limits_hard':
     path    => '/etc/security/limits.conf',
-    line    => "${llc_opendj_user} hard nofile 131072",
+    line    => "${opendj_user} hard nofile 131072",
   }
   ->
   exec { 'configure opendj1':
-    command => "${llc_opendj_home}/setup --cli -v \
-    --ldapPort '${llc_ldap_port}' \
-    --adminConnectorPort '${llc_opendj_admin_port}' \
-    --rootUserDN '${llc_opendj_admin_user}' \
-    --rootUserPassword '${llc_opendj_admin_password}' \
+    command => "${opendj_home}/setup --cli -v \
+    --ldapPort '${ldap_port}' \
+    --adminConnectorPort '${opendj_admin_port}' \
+    --rootUserDN '${opendj_admin_user}' \
+    --rootUserPassword '${opendj_admin_password}' \
     --no-prompt --noPropertiesFile \
     --doNotStart \
     --generateSelfSignedCertificate \
     --hostname esec-ldap \
     --acceptLicense \
     --enableStartTLS",
-    creates => "${llc_opendj_home}/config",
+    creates => "${opendj_home}/config",
   }
   ->
   exec { 'configure opendj2':
     command => "/opt/opendj/bin/start-ds",
-    creates => "${llc_opendj_home}/config_done",
+    creates => "${opendj_home}/config_done",
   }
   ->
   exec { 'configure opendj3':
     command => "${dsconfig} \
     --hostname localhost create-backend \
     --backend-name userRoot --type=je \
-    --set base-dn:'${llc_ldap_base_dn}' --set enabled:true",
-    creates => "${llc_opendj_home}/config_done",
+    --set base-dn:'${ldap_base_dn}' --set enabled:true",
+    creates => "${opendj_home}/config_done",
   }
   ->
   exec { 'configure opendj4':
@@ -149,28 +149,28 @@ class opendj (
     --set default-password-storage-scheme:PBKDF2 \
     --set password-attribute:userpassword \
     --type password-policy --policy-name password-policy",
-    creates => "${llc_opendj_home}/config_done",
+    creates => "${opendj_home}/config_done",
   }
   ->
   exec { 'configure opendj5':
-    command => "/opt/opendj/bin/import-ldif --includeBranch '${llc_ldap_base_dn}' \
-    --backendID userRoot  --start 0 --port '${llc_opendj_admin_port}' --trustAll \
-    --bindPassword '${llc_opendj_admin_password}' --hostname localhost \
+    command => "/opt/opendj/bin/import-ldif --includeBranch '${ldap_base_dn}' \
+    --backendID userRoot  --start 0 --port '${opendj_admin_port}' --trustAll \
+    --bindPassword '${opendj_admin_password}' --hostname localhost \
     --ldifFile /opt/opendj/opendj-ldap.ldif",
-    creates => "${llc_opendj_home}/config_done",
+    creates => "${opendj_home}/config_done",
   }
   ->
   exec { 'configure opendj6':
     command => '/opt/opendj/bin/stop-ds',
-    creates => "${llc_opendj_home}/config_done",
+    creates => "${opendj_home}/config_done",
   }
   ->
   exec { 'what dependency cycle':
-    command => "chown -R ${llc_opendj_user}:${llc_opendj_group} ${llc_opendj_home}",
+    command => "chown -R ${opendj_user}:${opendj_group} ${opendj_home}",
   }
   ->
   exec { 'create RC script':
-    command => "${llc_opendj_home}/bin/create-rc-script --userName ${llc_opendj_user} \
+    command => "${opendj_home}/bin/create-rc-script --userName ${opendj_user} \
         --outputFile /etc/init.d/opendj",
     creates => '/etc/init.d/opendj',
   }
@@ -186,7 +186,7 @@ class opendj (
     hasstatus  => false,
   }
   ->
-  file { "${llc_opendj_home}/config_done":
+  file { "${opendj_home}/config_done":
     ensure  => file,
     content => "config_done",
     owner   => $opendj_user,
