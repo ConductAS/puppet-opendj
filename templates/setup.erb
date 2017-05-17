@@ -1,11 +1,11 @@
 hostname                        =<%= @host %>
-ldapPort                        =<%= @ldap_port %>
+ldapPort                        =<%= @llc_ldap_port %>
 generateSelfSignedCertificate   =true
 enableStartTLS                  =true
-ldapsPort                       =<%= @ldaps_port %>
-jmxPort                         =<%= @opendj_jmx_port %>
-adminConnectorPort              =<%= @opendj_admin_port %>
-rootUserDN                      =<%= @opendj_admin_user %>
-rootUserPassword                =<%= @opendj_admin_password %>
-baseDN                          =<%= @opendj_base_dn %>
+ldapsPort                       =<%= @llc_ldaps_port %>
+jmxPort                         =<%= @llc_opendj_jmx_port %>
+adminConnectorPort              =<%= @llc_opendj_admin_port %>
+rootUserDN                      =<%= @llc_opendj_admin_user %>
+rootUserPassword                =<%= @llc_opendj_admin_password %>
+baseDN                          =<%= @llc_opendj_base_dn %>
 ldifFile                        =<%= @base_dn_file %>
