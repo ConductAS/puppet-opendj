@@ -60,7 +60,7 @@ class opendj (
   exec{'retrieve_opendj_zip':
     command => "${opendj_url}",
     creates => "${opendj_base_dir}/opendj.zip",
-    notify => exec["unzip_opendj"],
+    notify => Exec["unzip_opendj"],
   }
 
   exec { 'unzip_opendj':
@@ -104,6 +104,7 @@ class opendj (
     owner   => $opendj_user,
     group   => $opendj_group,
     mode    => '0600',
+    notify  => [Exec['configure opendj5'], Service['opendj']],
   }
   ->
   file_line { 'file_limits_soft':
@@ -175,9 +176,9 @@ class opendj (
     creates => '/etc/init.d/opendj',
   }
   ->
-  exec { 'create SD script':
-    command => "/usr/bin/systemctl -l enable opendj",
-    notify  => Service['opendj'],
+  exec { 'echo start opendj':
+   unless  => '/bin/pgrep -fla /opt/opendj/config/config.ldif',
+   notify  => Service['opendj'],
   }
   ->
   service { 'opendj':
