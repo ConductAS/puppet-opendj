@@ -176,15 +176,15 @@ class opendj (
     creates => '/etc/init.d/opendj',
   }
   ->
-  exec { 'echo start opendj':
+  exec { '/bin/systemctl daemon-reload':
    unless  => '/bin/pgrep -fla /opt/opendj/config/config.ldif',
    notify  => Service['opendj'],
   }
   ->
   service { 'opendj':
-    ensure     => running,
-    enable     => true,
-    hasstatus  => false,
+    ensure    => running,
+    enable    => true,
+    hasstatus => false,
   }
   ->
   file { "${opendj_home}/config_done":
