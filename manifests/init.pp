@@ -104,7 +104,7 @@ class opendj (
     owner   => $opendj_user,
     group   => $opendj_group,
     mode    => '0600',
-    notify  => [Exec['configure opendj5'], Service['opendj']],
+    notify  => Exec['import ldif'],
   }
   ->
   file_line { 'file_limits_soft':
@@ -153,12 +153,12 @@ class opendj (
     creates => "${opendj_home}/config_done",
   }
   ->
-  exec { 'configure opendj5':
+  exec { 'import ldif':
     command => "/opt/opendj/bin/import-ldif --includeBranch '${ldap_base_dn}' \
     --backendID userRoot  --start 0 --port '${opendj_admin_port}' --trustAll \
     --bindPassword '${opendj_admin_password}' --hostname localhost \
     --ldifFile /opt/opendj/opendj-ldap.ldif",
-    creates => "${opendj_home}/config_done",
+    refreshonly => true,
   }
   ->
   exec { 'configure opendj6':
