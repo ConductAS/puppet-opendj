@@ -146,10 +146,9 @@ class opendj (
   }
   ->
   exec { 'configure opendj4':
-    command => "${dsconfig} create-password-policy \
+    command => "${dsconfig} set-password-policy-prop \
     --set default-password-storage-scheme:PBKDF2 \
-    --set password-attribute:userpassword \
-    --type password-policy --policy-name password-policy",
+    --policy-name 'Default Password Policy'",
     creates => "${opendj_home}/config_done",
   }
   ->
