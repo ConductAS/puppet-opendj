@@ -3,9 +3,9 @@ ldapPort                        =<%= @ldap_port %>
 generateSelfSignedCertificate   =true
 enableStartTLS                  =true
 ldapsPort                       =<%= @ldaps_port %>
-jmxPort                         =<%= @jmx_port %>
-adminConnectorPort              =<%= @admin_port %>
-rootUserDN                      =<%= @admin_user %>
-rootUserPassword                =<%= @admin_password %>
-baseDN                          =<%= @base_dn %>
+jmxPort                         =<%= @opendj_jmx_port %>
+adminConnectorPort              =<%= @opendj_admin_port %>
+rootUserDN                      =<%= @opendj_admin_user %>
+rootUserPassword                =<%= @opendj_admin_password %>
+baseDN                          =<%= @opendj_base_dn %>
 ldifFile                        =<%= @base_dn_file %>
