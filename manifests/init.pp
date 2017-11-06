@@ -149,7 +149,7 @@ class opendj (
     command => "${dsconfig} set-password-policy-prop \
     --set default-password-storage-scheme:PBKDF2 \
     --policy-name 'Default Password Policy'",
-    creates => "${opendj_home}/config_done",
+    creates => "${opendj_home}/config_password_done",
   }
   ->
   exec { 'import ldif':
